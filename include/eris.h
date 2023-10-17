@@ -4,85 +4,85 @@
 #include <Windows.h>
 #include <string>
 
-#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
-#define kNtCurrentProcess ( (HANDLE)(LONG_PTR) -1 ) 
+#define NT_SUCCESS(status) (((NTSTATUS)(status)) >= 0)
+#define nt_current_process ( (HANDLE)(LONG_PTR) -1 ) 
 
-constexpr NTSTATUS kStatusInfoLengthMismatch = 0xC0000004;
-constexpr BYTE kProcessHandleType = 0x7;
-constexpr ULONG kSystemHandleInformation = 16;
+constexpr NTSTATUS k_status_info_length_mismatch = 0xC0000004;
+constexpr BYTE k_process_handle_type = 0x7;
+constexpr ULONG k_system_handle_information = 16;
 
-typedef struct _UNICODE_STRING {
-    USHORT Length;
-    USHORT MaximumLength;
-    PWCH   Buffer;
-} UNICODE_STRING, * PUNICODE_STRING;
+typedef struct _unicode_string {
+    USHORT length;
+    USHORT maximum_length;
+    PWCH   buffer;
+} unicode_string, * punicode_string;
 
-typedef struct _OBJECT_ATTRIBUTES {
-    ULONG           Length;
-    HANDLE          RootDirectory;
-    PUNICODE_STRING ObjectName;
-    ULONG           Attributes;
-    PVOID           SecurityDescriptor;
-    PVOID           SecurityQualityOfService;
-}  OBJECT_ATTRIBUTES, * POBJECT_ATTRIBUTES;
+typedef struct _object_attributes {
+    ULONG           length;
+    HANDLE          root_directory;
+    punicode_string object_name;
+    ULONG           attributes;
+    PVOID           security_descriptor;
+    PVOID           security_quality_of_service;
+}  object_attributes, * pobject_attributes;
 
-typedef struct _CLIENT_ID
+typedef struct _client_id
 {
-    PVOID UniqueProcess;
-    PVOID UniqueThread;
-} CLIENT_ID, * PCLIENT_ID;
+    PVOID unique_process;
+    PVOID unique_thread;
+} client_id, * pclient_id;
 
-typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
+typedef struct _system_handle_table_entry_info
 {
-    ULONG ProcessId;
-    BYTE ObjectTypeNumber;
-    BYTE Flags;
-    USHORT Handle;
-    PVOID Object;
-    ACCESS_MASK GrantedAccess;
-} SYSTEM_HANDLE, * PSYSTEM_HANDLE;
+    ULONG process_id;
+    BYTE object_type_number;
+    BYTE flags;
+    USHORT handle;
+    PVOID object;
+    ACCESS_MASK granted_access;
+} system_handle, * psystem_handle;
 
-typedef struct _SYSTEM_HANDLE_INFORMATION
+typedef struct _system_handle_information
 {
-    ULONG HandleCount;
-    SYSTEM_HANDLE Handles[1];
-} SYSTEM_HANDLE_INFORMATION, * PSYSTEM_HANDLE_INFORMATION;
+    ULONG handle_count;
+    system_handle handles[1];
+} system_handle_information, * psystem_handle_information;
 
-typedef NTSTATUS(NTAPI* _NtDuplicateObject)(
-    HANDLE SourceProcessHandle,
-    HANDLE SourceHandle,
-    HANDLE TargetProcessHandle,
-    PHANDLE TargetHandle,
-    ACCESS_MASK DesiredAccess,
-    ULONG Attributes,
-    ULONG Options
+typedef NTSTATUS(NTAPI* _nt_duplicate_object)(
+    HANDLE source_process_handle,
+    HANDLE source_handle,
+    HANDLE target_process_handle,
+    PHANDLE target_handle,
+    ACCESS_MASK desired_access,
+    ULONG attributes,
+    ULONG options
     );
 
-typedef NTSTATUS(NTAPI* _RtlAdjustPrivilege)(
-    ULONG Privilege,
-    BOOLEAN Enable,
-    BOOLEAN CurrentThread,
-    PBOOLEAN Enabled
+typedef NTSTATUS(NTAPI* _rtl_adjust_privilege)(
+    ULONG privilege,
+    BOOLEAN enable,
+    BOOLEAN current_thread,
+    PBOOLEAN enabled
     );
 
-typedef NTSYSAPI NTSTATUS(NTAPI* _NtOpenProcess)(
-    PHANDLE            ProcessHandle,
-    ACCESS_MASK        DesiredAccess,
-    POBJECT_ATTRIBUTES ObjectAttributes,
-    PCLIENT_ID         ClientId
+typedef NTSYSAPI NTSTATUS(NTAPI* _nt_open_process)(
+    PHANDLE            process_handle,
+    ACCESS_MASK        desired_access,
+    pobject_attributes object_attributes,
+    pclient_id         client_id
     );
 
-typedef NTSTATUS(NTAPI* _NtQuerySystemInformation)(
-    ULONG SystemInformationClass,
-    PVOID SystemInformation,
-    ULONG SystemInformationLength,
-    PULONG ReturnLength
+typedef NTSTATUS(NTAPI* _nt_query_system_information)(
+    ULONG system_information_class,
+    PVOID system_information,
+    ULONG system_information_length,
+    PULONG return_length
     );
 
-namespace Eris {
-    bool Valid(HANDLE Handle);
-    DWORD GetPID(const std::string& ProcessName);
-    HANDLE Hijack(DWORD TargetProcessId);
+namespace eris {
+    bool is_valid(HANDLE handle);
+    DWORD get_pid(const std::string& process_name);
+    HANDLE hijack(DWORD target_process_id);
 }
 
 #endif

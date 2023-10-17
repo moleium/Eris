@@ -3,18 +3,15 @@
 #include "eris.h"
 
 int main() {
-    DWORD pid = Eris::GetPID("whatever.exe");
+    DWORD pid = eris::get_pid("whatever.exe");
 
     std::cout << 
         (pid == 0 ? "Process not found" : "Process found") << std::endl;
 
-    HANDLE Handle = Eris::Hijack(pid);
+    HANDLE handle = eris::hijack(pid);
 
-    if (Handle != nullptr) {
-        std::cout << "Successfully hijacked handle: " << Handle << std::endl;
-    }
-    else {
-        std::cerr << "Failed to hijack handle" << std::endl;
+    if (handle != nullptr) {
+        std::cout << "Successfully hijacked handle: " << handle << std::endl;
     }
 
     getchar();

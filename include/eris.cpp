@@ -2,92 +2,96 @@
 #include <iostream>
 #include <tlhelp32.h>
 
-namespace Eris {
-    DWORD GetPID(const std::string& ProcessName) {
-        DWORD ProcId = 0;
-        HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+namespace eris {
+    DWORD get_pid(const std::string& process_name) {
+        DWORD proc_id = 0;
+        HANDLE h_snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
-        if (hSnap != INVALID_HANDLE_VALUE) {
+        if (h_snap != INVALID_HANDLE_VALUE) {
             PROCESSENTRY32 pe;
             pe.dwSize = sizeof(pe);
 
-            if (Process32First(hSnap, &pe)) {
+            if (Process32First(h_snap, &pe)) {
                 if (!pe.th32ProcessID)
-                    Process32Next(hSnap, &pe);
+                    Process32Next(h_snap, &pe);
                 do {
-                    if (!_stricmp(pe.szExeFile, ProcessName.c_str())) {
-                        ProcId = pe.th32ProcessID;
+                    if (!_stricmp(pe.szExeFile, process_name.c_str())) {
+                        proc_id = pe.th32ProcessID;
                         break;
                     }
-                } while (Process32Next(hSnap, &pe));
+                } while (Process32Next(h_snap, &pe));
             }
         }
-        CloseHandle(hSnap);
-        return ProcId;
+        CloseHandle(h_snap);
+        return proc_id;
     }
 
-    bool Valid(HANDLE Handle) {
-        return Handle && Handle != INVALID_HANDLE_VALUE;
+    bool is_valid(HANDLE handle) {
+        return handle && handle != INVALID_HANDLE_VALUE;
     }
 
-    HANDLE Hijack(DWORD TargetProcessId) {
-        HMODULE Ntdll = GetModuleHandleA("ntdll");
-        auto RtlAdjustPrivilege = (NTSTATUS(WINAPI*)(ULONG, BOOLEAN, BOOLEAN, PBOOLEAN)) GetProcAddress(Ntdll, "RtlAdjustPrivilege");
-        BOOLEAN OldPriv;
-        RtlAdjustPrivilege(20, TRUE, FALSE, &OldPriv);
+    HANDLE hijack(DWORD target_process_id) {
+        HMODULE ntdll = GetModuleHandleA("ntdll");
+        auto rtl_adjust_privilege = (_rtl_adjust_privilege)
+            GetProcAddress(ntdll, "RtlAdjustPrivilege");
+        BOOLEAN old_priv;
+        rtl_adjust_privilege(20, TRUE, FALSE, &old_priv);
 
-        auto NtQuerySystemInformation = (_NtQuerySystemInformation)GetProcAddress(Ntdll, "NtQuerySystemInformation");
-        auto NtDuplicateObject = (_NtDuplicateObject)GetProcAddress(Ntdll, "NtDuplicateObject");
-        auto NtOpenProcess = (_NtOpenProcess)GetProcAddress(Ntdll, "NtOpenProcess");
+        auto nt_query_system_information = (_nt_query_system_information)
+            GetProcAddress(ntdll, "NtQuerySystemInformation");
+        auto nt_duplicate_object = (_nt_duplicate_object)
+            GetProcAddress(ntdll, "NtDuplicateObject");
+        auto nt_open_process = (_nt_open_process)
+            GetProcAddress(ntdll, "NtOpenProcess");
 
-        OBJECT_ATTRIBUTES Obj_Attribute = { sizeof(OBJECT_ATTRIBUTES) };
-        CLIENT_ID clientID = { 0 };
-        DWORD size = sizeof(SYSTEM_HANDLE_INFORMATION);
-        auto hInfo = std::make_unique<BYTE[]>(size);
-        ZeroMemory(hInfo.get(), size);
-        NTSTATUS NtRet;
+        object_attributes obj_attribute = { sizeof(object_attributes) };
+        client_id client_id = { 0 };
+        DWORD size = sizeof(system_handle_information);
+        auto h_info = std::make_unique<BYTE[]>(size);
+        ZeroMemory(h_info.get(), size);
+        NTSTATUS nt_ret;
 
         do {
-            hInfo.reset(new BYTE[size *= 2]);
-        } while ((NtRet = NtQuerySystemInformation(kSystemHandleInformation,
-            reinterpret_cast<PSYSTEM_HANDLE_INFORMATION>(hInfo.get()), size,
-            nullptr)) == kStatusInfoLengthMismatch);
+            h_info.reset(new BYTE[size *= 2]);
+        } while ((nt_ret = nt_query_system_information(k_system_handle_information,
+            reinterpret_cast<psystem_handle_information>(h_info.get()), size,
+            nullptr)) == k_status_info_length_mismatch);
 
-        if (!NT_SUCCESS(NtRet))
+        if (!NT_SUCCESS(nt_ret))
             return nullptr;
 
-        for (unsigned int i = 0; i < reinterpret_cast<PSYSTEM_HANDLE_INFORMATION>(hInfo.get())->HandleCount; ++i)
+        for (unsigned int i = 0; i < reinterpret_cast<psystem_handle_information>(h_info.get())->handle_count; ++i)
         {
-            auto handle = reinterpret_cast<PSYSTEM_HANDLE_INFORMATION>(hInfo.get())->Handles[i];
-            if (!Valid((HANDLE)handle.Handle))
-                continue; 
-            if (handle.ObjectTypeNumber != kProcessHandleType)
+            auto handle = reinterpret_cast<psystem_handle_information>(h_info.get())->handles[i];
+            if (!is_valid((HANDLE)handle.handle))
                 continue;
-            clientID.UniqueProcess = (HANDLE)handle.ProcessId;
-            HANDLE procHandle;
-            NtRet = NtOpenProcess(&procHandle, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-                &Obj_Attribute,
-                &clientID);
-            if (!Valid(procHandle) || !NT_SUCCESS(NtRet))
+            if (handle.object_type_number != k_process_handle_type)
+                continue;
+            client_id.unique_process = (HANDLE)handle.process_id;
+            HANDLE proc_handle;
+            nt_ret = nt_open_process(&proc_handle, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                &obj_attribute,
+                &client_id);
+            if (!is_valid(proc_handle) || !NT_SUCCESS(nt_ret))
                 continue;
 
-            HANDLE HHandle; // hijacked
-            NtRet = NtDuplicateObject(procHandle,
-                (HANDLE)handle.Handle,
-                kNtCurrentProcess,
-                &HHandle,
+            HANDLE hijacked_handle;
+            nt_ret = nt_duplicate_object(proc_handle,
+                (HANDLE)handle.handle,
+                nt_current_process,
+                &hijacked_handle,
                 PROCESS_ALL_ACCESS,
                 0,
                 0);
-            if (!Valid(HHandle) || !NT_SUCCESS(NtRet))
+            if (!is_valid(hijacked_handle) || !NT_SUCCESS(nt_ret))
                 continue;
 
-            if (GetProcessId(HHandle) != TargetProcessId)
+            if (GetProcessId(hijacked_handle) != target_process_id)
             {
-                CloseHandle(HHandle);
+                CloseHandle(hijacked_handle);
                 continue;
             }
-            return HHandle;
+            return hijacked_handle;
         }
         return nullptr;
     }
