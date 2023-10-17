@@ -14,6 +14,8 @@ int main() {
         std::cout << "Successfully hijacked handle: " << handle << std::endl;
     }
 
+    //NTSTATUS status = eris::read_vm(handle, (PVOID)address, buffer, sizeof(buffer));
+
     getchar();
     return 0;
 }

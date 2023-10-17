@@ -56,33 +56,52 @@ typedef NTSTATUS(NTAPI* _nt_duplicate_object)(
     ACCESS_MASK desired_access,
     ULONG attributes,
     ULONG options
-    );
+);
 
 typedef NTSTATUS(NTAPI* _rtl_adjust_privilege)(
     ULONG privilege,
     BOOLEAN enable,
     BOOLEAN current_thread,
     PBOOLEAN enabled
-    );
+);
 
 typedef NTSYSAPI NTSTATUS(NTAPI* _nt_open_process)(
     PHANDLE            process_handle,
     ACCESS_MASK        desired_access,
     pobject_attributes object_attributes,
     pclient_id         client_id
-    );
+);
 
 typedef NTSTATUS(NTAPI* _nt_query_system_information)(
     ULONG system_information_class,
     PVOID system_information,
     ULONG system_information_length,
     PULONG return_length
-    );
+);
+
+typedef NTSTATUS(NTAPI* _NtReadVirtualMemory)(
+    HANDLE process_handle,
+    PVOID base_address,
+    PVOID buffer,
+    ULONG number_of_bytes_to_read,
+    PULONG number_of_bytes_readed
+);
+
+typedef NTSTATUS(NTAPI* _NtWriteVirtualMemory)(
+    HANDLE process_handle,
+    PVOID base_address,
+    PVOID buffer,
+    ULONG number_of_bytes_to_read,
+    PULONG number_of_bytes_written
+);
 
 namespace eris {
     bool is_valid(HANDLE handle);
     DWORD get_pid(const std::string& process_name);
     HANDLE hijack(DWORD target_process_id);
+
+    NTSTATUS read_vm(HANDLE process_handle, PVOID base_address, PVOID buffer, ULONG number_of_bytes_to_read);
+    NTSTATUS write_vm(HANDLE process_handle, PVOID base_address, PVOID buffer, ULONG number_of_bytes_to_write);
 }
 
 #endif

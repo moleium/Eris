@@ -95,4 +95,35 @@ namespace eris {
         }
         return nullptr;
     }
+
+    NTSTATUS read_vm(HANDLE process_handle, PVOID base_address, PVOID buffer, ULONG number_of_bytes_to_read) {
+        HMODULE ntdll = GetModuleHandleA("ntdll");
+        auto nt_read_virtual_memory = (_NtReadVirtualMemory)GetProcAddress(ntdll, "NtReadVirtualMemory");
+
+        ULONG number_of_bytes_read;
+        NTSTATUS status = nt_read_virtual_memory(
+            process_handle,
+            base_address,
+            buffer, number_of_bytes_to_read,
+            &number_of_bytes_read
+        );
+
+        return status;
+    }
+
+    NTSTATUS write_vm(HANDLE process_handle, PVOID base_address, PVOID buffer, ULONG number_of_bytes_to_write) {
+        HMODULE ntdll = GetModuleHandleA("ntdll");
+        auto nt_write_virtual_memory = (_NtWriteVirtualMemory)GetProcAddress(ntdll, "NtWriteVirtualMemory");
+
+        ULONG number_of_bytes_written;
+        NTSTATUS status = nt_write_virtual_memory(
+            process_handle,
+            base_address,
+            buffer,
+            number_of_bytes_to_write,
+            &number_of_bytes_written
+        );
+
+        return status;
+    }
 }
