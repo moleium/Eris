@@ -8,7 +8,7 @@ int main() {
     std::cout << 
         (pid == 0 ? "Process not found" : "Process found") << std::endl;
 
-    HANDLE handle = eris::hijack(pid);
+    HANDLE handle = eris::hijack(pid, true);
 
     if (handle != nullptr) {
         std::cout << "Successfully hijacked handle: " << handle << std::endl;

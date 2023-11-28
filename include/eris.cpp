@@ -30,7 +30,7 @@ namespace eris {
         return handle && handle != INVALID_HANDLE_VALUE;
     }
 
-    HANDLE hijack(DWORD target_process_id) {
+    HANDLE hijack(DWORD target_process_id, bool duplicate_handle = false) {
         HMODULE ntdll = GetModuleHandleA("ntdll");
         auto rtl_adjust_privilege = (_rtl_adjust_privilege)
             GetProcAddress(ntdll, "RtlAdjustPrivilege");
@@ -60,11 +60,11 @@ namespace eris {
 
         for (unsigned int i = 0; i < reinterpret_cast<psystem_handle_information>(h_info.get())->handle_count; ++i) {
             auto handle = reinterpret_cast<psystem_handle_information>(h_info.get())->handles[i];
-            if (!is_valid((HANDLE)handle.handle))
+            if (!is_valid((HANDLE)(ULONG_PTR)handle.handle))
                 continue;
             if (handle.object_type_number != k_process_handle_type)
                 continue;
-            client_id.unique_process = (HANDLE)handle.process_id;
+            client_id.unique_process = (HANDLE)(ULONG_PTR)handle.process_id;
             HANDLE proc_handle;
             nt_ret = nt_open_process(&proc_handle, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
                 &obj_attribute,
@@ -75,6 +75,16 @@ namespace eris {
             if (GetProcessId(proc_handle) != target_process_id) {
                 CloseHandle(proc_handle);
                 continue;
+            }
+
+            if (duplicate_handle) {
+                HANDLE dup_handle = nullptr;
+                if (!DuplicateHandle(GetCurrentProcess(), proc_handle, GetCurrentProcess(), &dup_handle, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
+                    CloseHandle(proc_handle);
+                    continue;
+                }
+                CloseHandle(proc_handle);
+                return dup_handle;
             }
 
             return proc_handle;

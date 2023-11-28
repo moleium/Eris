@@ -65,7 +65,7 @@ typedef NTSTATUS(NTAPI* _rtl_adjust_privilege)(
     PBOOLEAN enabled
 );
 
-typedef NTSYSAPI NTSTATUS(NTAPI* _nt_open_process)(
+typedef NTSTATUS(NTAPI* _nt_open_process)(
     PHANDLE            process_handle,
     ACCESS_MASK        desired_access,
     pobject_attributes object_attributes,
@@ -98,7 +98,7 @@ typedef NTSTATUS(NTAPI* _NtWriteVirtualMemory)(
 namespace eris {
     bool is_valid(HANDLE handle);
     DWORD get_pid(const std::string& process_name);
-    HANDLE hijack(DWORD target_process_id);
+    HANDLE hijack(DWORD target_process_id, bool duplicate_handle);
 
     NTSTATUS read_vm(HANDLE process_handle, PVOID base_address, PVOID buffer, ULONG number_of_bytes_to_read);
     NTSTATUS write_vm(HANDLE process_handle, PVOID base_address, PVOID buffer, ULONG number_of_bytes_to_write);
