@@ -39,8 +39,6 @@ namespace eris {
 
         auto nt_query_system_information = (_nt_query_system_information)
             GetProcAddress(ntdll, "NtQuerySystemInformation");
-        auto nt_duplicate_object = (_nt_duplicate_object)
-            GetProcAddress(ntdll, "NtDuplicateObject");
         auto nt_open_process = (_nt_open_process)
             GetProcAddress(ntdll, "NtOpenProcess");
 
@@ -60,8 +58,7 @@ namespace eris {
         if (!NT_SUCCESS(nt_ret))
             return nullptr;
 
-        for (unsigned int i = 0; i < reinterpret_cast<psystem_handle_information>(h_info.get())->handle_count; ++i)
-        {
+        for (unsigned int i = 0; i < reinterpret_cast<psystem_handle_information>(h_info.get())->handle_count; ++i) {
             auto handle = reinterpret_cast<psystem_handle_information>(h_info.get())->handles[i];
             if (!is_valid((HANDLE)handle.handle))
                 continue;
@@ -69,29 +66,18 @@ namespace eris {
                 continue;
             client_id.unique_process = (HANDLE)handle.process_id;
             HANDLE proc_handle;
-            nt_ret = nt_open_process(&proc_handle, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            nt_ret = nt_open_process(&proc_handle, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
                 &obj_attribute,
                 &client_id);
             if (!is_valid(proc_handle) || !NT_SUCCESS(nt_ret))
                 continue;
 
-            HANDLE hijacked_handle;
-            nt_ret = nt_duplicate_object(proc_handle,
-                (HANDLE)handle.handle,
-                nt_current_process,
-                &hijacked_handle,
-                PROCESS_ALL_ACCESS,
-                0,
-                0);
-            if (!is_valid(hijacked_handle) || !NT_SUCCESS(nt_ret))
-                continue;
-
-            if (GetProcessId(hijacked_handle) != target_process_id)
-            {
-                CloseHandle(hijacked_handle);
+            if (GetProcessId(proc_handle) != target_process_id) {
+                CloseHandle(proc_handle);
                 continue;
             }
-            return hijacked_handle;
+
+            return proc_handle;
         }
         return nullptr;
     }
